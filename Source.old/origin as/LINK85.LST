@@ -1,0 +1,27 @@
+/p:0f000h
+/d:0f000h
+/ws:0f000h
+bios.rel
+/o
+/p:0d800h
+/d:0d800h
+/ws:0d800h
+font42.rel
+/p:0f800h
+/d:0f800h
+pr85.rel
+/p:0ffefh
+/d:0ffefh
+gate.rel
+/o
+/p:0c000h
+/d:0c000h
+/ws:0c000h
+kbd.rel
+lprint.rel
+cpp2_2.rel
+bdos2_2.rel
+/p:0ffefh
+/d:0ffefh
+gate.rel
+/n drv

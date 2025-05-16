@@ -1,0 +1,1367 @@
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1 (Pass 1)
+
+
+%END statement required as end of program
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1
+
+
+                                
+                                
+                                                extrn stkey, getkey, intkey, keybnk
+                                                extrn ttyout, ttyinit, ttyint, ttybnk
+                                                extrn lpr, lprst, lprbnk
+                                
+                                                extrn strcpp    ; cppbnk in batch
+                                
+                                                public biobnk
+                                
+                         C                      include cpm2_2.inc
+                         C      
+                         C      
+  DA00                   C      cpmb    EQU     0da00h        ;fakeaddress
+  E206                   C      bdos    EQU     cpmb+0806h
+  F000                   C      bios    EQU     cpmb+1600h
+                         C      
+                         C      
+                         C      
+                         C      
+                         C      ;
+                         C      ;  GLOBAL DEFINITIONS FOR CP/M 2.2
+                         C      ;
+                         C      
+  0000                   C      JPBOOT  EQU     0               ;jump to warm boot
+  0003                   C      IOBYTE  EQU     3               ;i/o definition byte.
+  0004                   C      TDRIVE  EQU     4               ;current drive name and user number.
+  0005                   C      ENTRY   EQU     5               ;entry point for the cp/m bdos.
+  005C                   C      TFCB    EQU     5CH             ;default file control block.
+  0080                   C      TBUFF   EQU     80H             ;i/o buffer and command line storage.
+  0100                   C      TBASE   EQU     100H            ;transiant program storage area.
+                         C      ;
+                         C      ;   Set control character equates.
+                         C      ;
+  0003                   C      CNTRLC  EQU     3               ;control-c
+  0005                   C      CNTRLE  EQU     05H             ;control-e
+  0008                   C      BS      EQU     08H             ;backspace
+  0009                   C      TAB     EQU     09H             ;tab
+  000A                   C      LF      EQU     0AH             ;line feed
+  000C                   C      FF      EQU     0CH             ;form feed
+  000D                   C      CR      EQU     0DH             ;carriage return
+  0010                   C      CNTRLP  EQU     10H             ;control-p
+  0012                   C      CNTRLR  EQU     12H             ;control-r
+  0013                   C      CNTRLS  EQU     13H             ;control-s
+  0015                   C      CNTRLU  EQU     15H             ;control-u
+  0018                   C      CNTRLX  EQU     18H             ;control-x
+  001A                   C      CNTRLZ  EQU     1AH             ;control-z (end-of-file mark)
+  007F                   C      DEL     EQU     7FH             ;rubout
+                                
+  0019                          biobnk       equ CBANK
+                                
+                                .z80
+                                
+                                ;there is bios started
+                                
+                                        .phase bios
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-1
+
+
+                                
+  F000    C3 F48C                       jp boot
+  F003    C3 F4EE                       jp wboot
+  F006    C3 F034                       jp const
+  F009    C3 F040                       jp conin
+  F00C    C3 F050                       jp conout
+  F00F    C3 F05B                       jp list
+  F012    C3 F066                       jp punch
+  F015    C3 F067                       jp reader
+  F018    C3 F679                       jp home
+  F01B    C3 F67E                       jp seldsk
+  F01E    C3 F6B2                       jp settrk
+  F021    C3 F6B7                       jp setsec
+  F024    C3 F6BC                       jp setdma
+  F027    C3 F6CB                       jp read
+  F02A    C3 F6D9                       jp write
+  F02D    C3 F06A                       jp prstat
+  F030    C3 F6C1                       jp sectran
+                                
+  F033    00                    bootdisk:  db 0
+                                
+                                ;-----------------------------------------------------
+                                
+                                
+  F034    21 0000*              const:  ld hl,stkey     ; function in driver
+  F037    16 00*                        ld d,keybnk
+  F039    CD FFEE                       call gate       ; call driver
+  F03C    FB                            ei              ; interrupts disabled by gate
+  F03D    C9                            ret 
+                                
+                                
+  F03E    FB                    conin1: ei 
+  F03F    76                            halt            ; wait for one frame
+  F040    CD F034               conin:  call const      ; keyboard buffer empty ?
+  F043    B7                            or a 
+  F044    28 F8                         jr z,conin1     ; empty
+  F046    21 0000*                      ld hl,getkey
+  F049    16 00*                        ld d,keybnk
+  F04B    CD FFEE                       call gate
+  F04E    FB                            ei 
+  F04F    C9                            ret 
+                                
+  F050    79                    conout: ld a,c
+  F051    21 0000*                      ld hl,ttyout
+  F054    16 00*                        ld d,ttybnk
+  F056    CD FFEE                       call gate
+  F059    FB                            ei 
+  F05A    C9                            ret 
+                                
+  F05B    79                    list:   ld a,c
+  F05C    21 0000*                      ld hl,lpr
+  F05F    16 00*                        ld d,lprbnk
+  F061    CD FFEE                       call gate
+  F064    FB                            ei
+  F065    C9                            ret        
+                                
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-2
+
+
+  F066    C9                    punch:  ret 
+                                
+  F067    3E 1A                 reader: ld a,1ah  ; punch,reader - not released
+  F069    C9                            ret 
+                                
+  F06A    21 0000*              prstat: ld hl,lprst
+  F06D    16 00*                        ld d,lprbnk
+  F06F    CD FFEE                       call gate
+  F072    FB                            ei
+  F073    C9                            ret 
+                                
+  F074    F3                    intadr: di              ; disable interrupts  ЭТО HАДО !  ОБЯЗАТЕЛЬHО !
+  F075    ED 73 F0A9                    ld (intsp),sp   ; escape stack
+  F079    31 FEFF                       ld sp,intstack
+  F07C    F5                            push af         ; escape all registers
+  F07D    C5                            push bc 
+  F07E    D5                            push de 
+  F07F    E5                            push hl 
+  F080    D9                            exx 
+  F081    08                            ex af,af'
+  F082    F5                            push af 
+  F083    C5                            push bc 
+  F084    D5                            push de 
+  F085    E5                            push hl 
+  F086    DD E5                         push ix 
+  F088    FD E5                         push iy 
+  F08A    21 0000*                      ld hl,intkey    ; int function in driver
+  F08D    16 00*                        ld d,keybnk
+  F08F    CD FFEE                       call gate
+  F092    21 0000*                      ld hl,ttyint    ; int function in driver
+  F095    16 00*                        ld d,ttybnk
+  F097    CD FFEE                       call gate
+  F09A    FD E1                         pop iy          ; restore all registers
+  F09C    DD E1                         pop ix 
+  F09E    E1                            pop hl 
+  F09F    D1                            pop de 
+  F0A0    C1                            pop bc 
+  F0A1    F1                            pop af 
+  F0A2    D9                            exx 
+  F0A3    08                            ex af,af'
+  F0A4    E1                            pop hl 
+  F0A5    D1                            pop de 
+  F0A6    C1                            pop bc 
+  F0A7    F1                            pop af 
+  F0A8    31 0000                       ld sp,0
+  F0A9                          intsp   equ $-2
+  F0AB    FB                            ei              ; enable interrupts
+  F0AC    ED 4D                         reti            ; special z80 instruction
+                                                        ; to return from interrupt.
+                                
+                                
+                                ;----------------------------------------------------
+                                
+  F0AE    F0FE 0000             dpbase: dw      trans_moa,0     ;disk param block base
+  F0B2    0000 0000                     dw      0,0
+  F0B6    F1CA F186                     dw      dirbf,dpblk_moa
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-3
+
+
+  F0BA    F3CC F24C                     dw      chk_moa0,all_moa0
+                                ;       disk parameter header for disk 01
+  F0BE    F0FE 0000                     dw      trans_moa,0
+  F0C2    0000 0000                     dw      0,0
+  F0C6    F1CA F186                     dw      dirbf,dpblk_moa
+  F0CA    F3EC F28C                     dw      chk_moa1,all_moa1
+                                ;       disk parameter header for disk 02
+  F0CE    F11E 0000                     dw      trans_atm,0
+  F0D2    0000 0000                     dw      0,0
+  F0D6    F1CA F197                     dw      dirbf,dpblk_atm
+  F0DA    F40C F2CC                     dw      chk_atm,all_atm
+                                ;       disk parameter header for disk 03
+  F0DE    F11E 0000                     dw      trans_profi,0
+  F0E2    0000 0000                     dw      0,0
+  F0E6    F1CA F1A8                     dw      dirbf,dpblk_profi
+  F0EA    F42C F30C                     dw      chk_profi,all_profi
+                                ;		disk parameter header for disk 04 SMUC
+  F0EE    F146 0000             		dw      trans_smuc,0     
+  F0F2    0000 0000                     dw      0,0
+  F0F6    F1CA F1B9                     dw      dirbf,dpblk_smuc
+  F0FA    F44C F34C                     dw      chk_smuc0,all_smuc0
+                                
+                                
+                                
+  F0FE    00 01 04 05           trans_moa: db 0,1,4,5,8,9,12,13,16,17,20,21,24,25,28,29
+  F102    08 09 0C 0D           
+  F106    10 11 14 15           
+  F10A    18 19 1C 1D           
+  F10E    02 03 06 07                     db 2,3,6,7,10,11,14,15,18,19,22,23,26,27,30,31
+  F112    0A 0B 0E 0F           
+  F116    12 13 16 17           
+  F11A    1A 1B 1E 1F           
+                                
+  F11E                          trans_profi:
+  F11E    00 01 02 03           trans_atm: db 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+  F122    04 05 06 07           
+  F126    08 09 0A 0B           
+  F12A    0C 0D 0E 0F           
+  F12E    10 11 12 13                     db 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+  F132    14 15 16 17           
+  F136    18 19 1A 1B           
+  F13A    1C 1D 1E 1F           
+                                ;only for profi
+  F13E    20 21 22 23                     db 32,33,34,35,36,37,38,39
+  F142    24 25 26 27           
+  F146    00 01 02 03           trans_smuc: db 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+  F14A    04 05 06 07           
+  F14E    08 09 0A 0B           
+  F152    0C 0D 0E 0F           
+  F156    10 11 12 13                     db 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+  F15A    14 15 16 17           
+  F15E    18 19 1A 1B           
+  F162    1C 1D 1E 1F           
+  F166    20 21 22 23           		  db 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+  F16A    24 25 26 27           
+  F16E    28 29 2A 2B           
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-4
+
+
+  F172    2C 2D 2E 2F           
+  F176    30 31 32 33           		  db 48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+  F17A    34 35 36 37           
+  F17E    38 39 3A 3B           
+  F182    3C 3D 3E 3F           
+                                
+                                ;disk parameter block
+  F186                          dpblk_moa:
+  F186    0020                          dw      32              ;sectors per track
+  F188    05                            db      5               ;block shift factor
+  F189    1F                            db      1fh             ;block mask
+  F18A    03                            db      3               ;null mask
+  F18B    009B                          dw    009bh             ;disk size-1
+  F18D    003F                          dw      63              ;directory max
+  F18F    C0                            db     0c0h              ;alloc 0
+  F190    00                            db      0               ;alloc 1
+  F191    0010                          dw    0010h             ;check size
+  F193    0004                          dw      4               ;track offset
+  F195    0102                          dw 0102h  ;extra +15 H=hszmsk L=hszshf
+                                
+                                
+  F197    0020                  dpblk_atm: dw 32
+  F199    04                               db 4
+  F19A    0F                               db 0fh
+  F19B    00                               db 0
+  F19C    013D                             dw 317
+  F19E    007F                             dw 127
+  F1A0    C0                               db 0c0h
+  F1A1    00                               db 0
+  F1A2    0020                             dw 32
+  F1A4    0002                             dw 2
+  F1A6    0102                             dw 0102h
+                                
+  F1A8    0028                  dpblk_profi: dw 0028h
+  F1AA    04                                 db 4
+  F1AB    0F                                 db 0fh
+  F1AC    00                                 db 0
+  F1AD    018F                               dw 018fh
+  F1AF    007F                               dw 007fh
+  F1B1    C0                                 db 0c0h
+  F1B2    00                                 db 00
+  F1B3    0020                               dw 0020h
+  F1B5    0000                               dw 0000h
+  F1B7    0704                               dw 0704h
+                                
+  F1B9                          dpblk_smuc:
+  F1B9    0040                          dw 64 ;sectors per track	;SPT - количество секторов (по 128 байт) на дорожку;
+  F1BB    05                            db 5 ;block shift factor	;BSH - количество бит, на которое необходимо сдвинуть размер логического сектора, чтобы получить размер кластера;
+  F1BC    1F                            db 31 ;block mask			;BLM - маска кластера - (размер_кластера/128)-1;  
+  F1BD    00                            db 0 ;null mask				;ЕХМ - маска директорной записи : если ЕХМ=0), то максимальный размер, адресуемый одной директорной записью, равен 16К; если ЕХМ=1, то - 32К и т.д.  
+  F1BE    01F5                          dw 501 ;disk size-1			;DSM - количество BLS -1 (не считая системных дорожек)
+  F1C0    00FF                          dw 255 ;directory max		;DRM - количество входов в директорию -1
+  F1C2    C0                            db 0c0h ;224 ;alloc 0		;AL0,1 - битовая шкала занятости BLS директорией. Начало шкалы - бит 7 AL0, конец - бит 0 AL1. Количество единиц, заполняющих AL0,1 (от начала шкалы) - (DRM+BLS/32)/(BLS/32).
+  F1C3    00                            db 0 ;alloc 1				;AL1
+  F1C4    0040                          dw 64 ;0 ;check size		;CKS - размер области CSV в DPH. Для сменных дисков - (DRM+1)/4, для не сменных - 0.
+  F1C6    0004                          dw 4 ;track offset			;OFF - количество зарезервированных дорожек на диске (с системой например).
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-5
+
+
+  F1C8    0102                          dw 0102h ;extra +15 H=hszmsk L=hszshf
+                                									;Размер области ALV в DPH - (DSM/8)+1
+                                									;BLS = 1024 (3,7), 2048 (4,15), 4096 (5,31), 8192 (6,63), 16384 (7,127)
+                                
+                                
+                                		
+                                ; ram areas for bdos use
+                                
+  F1CA                          dirbf:    ds 128     ;scratch directory area
+  F24A    0000                            dw 0       ;extra word
+                                
+  F24C                          all_moa0: ds 64 ;20  ;allocation vector
+  F28C                          all_moa1: ds 64 ;20
+  F2CC                          all_atm:  ds 64 ;40
+  F30C                          all_profi: ds 64 ;50
+  F34C                          all_smuc0: ds 128 ;20 
+                                
+  F3CC                          chk_moa0: ds 32 ;16  ;check vector
+  F3EC                          chk_moa1: ds 32 ;16
+  F40C                          chk_atm:  ds 32
+  F42C                          chk_profi: ds 32
+  F44C                          chk_smuc0: ds 64 ;16 
+                                
+                                ;--------------------------------------------------------
+                                
+  F48C    F3                    boot:   di 
+  F48D    31 FFEE                       ld sp,biosstack
+  F490    01 7FFD                       ld bc,7ffdh
+  F493    3E 19                         ld a,biobnk
+  F495    ED 79                         out (c),a
+                                
+  F497    21 0000*                      ld hl,ttyinit
+  F49A    16 00*                        ld d,ttybnk
+  F49C    CD FFEE                       call gate
+  F49F    21 F576                       ld hl,signon        
+  F4A2    CD F565                       call biosprint
+                                
+  F4A5    CD F658                       call cache_on
+  F4A8    21 0000                       ld hl,0
+  F4AB    75                            ld (hl),l
+  F4AC    34                            inc (hl)
+  F4AD    28 11                         jr z,nocache
+  F4AF    35                            dec (hl)
+  F4B0    20 0E                         jr nz,nocache
+  F4B2    21 F658                       ld hl,cache_on
+  F4B5    22 F86C                       ld (trdoff),hl
+  F4B8    21 F65D                       ld hl,cache_off
+  F4BB    22 F7BC                       ld (trdon),hl
+  F4BE    18 25                         jr fboot
+                                
+  F4C0    CD F662               nocache: call p01ffd_on
+  F4C3    21 0000                        ld hl,0
+  F4C6    75                             ld (hl),l
+  F4C7    34                             inc (hl)
+  F4C8    28 11                          jr z,bootfail
+  F4CA    35                             dec (hl)
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-6
+
+
+  F4CB    20 0E                          jr nz,bootfail
+  F4CD    21 F662                        ld hl,p01ffd_on
+  F4D0    22 F86C                        ld (trdoff),hl
+  F4D3    21 F66E                        ld hl,p01ffd_off
+  F4D6    22 F7BC                        ld (trdon),hl
+  F4D9    18 0A                          jr fboot
+                                
+  F4DB    21 F61C               bootfail: ld hl,failtxt
+  F4DE    CD F565                         call biosprint
+  F4E1    76                              halt
+  F4E2    C3 F4E1                         jp $-1
+                                
+  F4E5    3E 04                 fboot:   ld a,4 ;диск по умолчанию
+  F4E7    32 0004                        ld (tdrive),a
+  F4EA    AF                    		 xor a
+  F4EB    32 0003                        ld (iobyte),a 
+                                
+  F4EE    F3                    wboot:  di
+  F4EF    AF                            xor a
+  F4F0    32 F742                       ld (hstempt),a  ; host buffer empty
+  F4F3    32 F749                       ld (flush),a    ; data saved
+  F4F6    31 0100                       ld sp,0100h
+  F4F9    3E C3                         ld a,0c3h        ; jp instruction
+  F4FB    21 F003                       ld hl,bios+3    ; warmboot address
+  F4FE    32 0000                       ld (jpboot),a 
+  F501    22 0001                       ld (jpboot+1),hl       ; 0: jp wboot
+  F504    21 E206                       ld hl,bdos
+  F507    32 0005                       ld (entry),a 
+  F50A    22 0006                       ld (entry+1),hl       ; 5: jp bdos
+  F50D    21 C9FB                       ld hl,0c9fbh    ; ei : ret 
+  F510    22 0038                       ld (38h),hl     ; rst #38
+  F513    21 45ED                       ld hl,45edh     ; retn code
+  F516    22 0066                       ld (66h),hl 
+  F519    3E FE                         ld a,intvec/256
+  F51B    ED 47                         ld i,a
+  F51D    ED 5E                         im 2
+  F51F    01 0080                       ld bc,0080h
+  F522    CD F6BC                       call setdma     ; default dma address
+                                
+  F525    21 F544                          ld hl,movecpp     
+  F528    11 0100                          ld de,100h
+  F52B    01 0021                          ld bc,movecppsize
+  F52E    ED B0                            ldir
+  F530    CD 0100                          call 100h
+                                
+  F533    3A 0004                       ld a,(tdrive)
+  F536    4F                            ld c,a 
+  F537    F5                            push af 
+  F538    CD F67E                       call seldsk
+  F53B    CD F679                       call home
+  F53E    F1                            pop af 
+  F53F    4F                            ld c,a 
+  F540    FB                            ei 
+  F541    C3 DA00                       jp cpmb         ; go to CPP
+                                
+  F544    01 7FFD               movecpp:  ld bc,7ffdh
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-7
+
+
+  F547    11 191E                         ld de,biobnk*256+cppbnk
+  F54A    ED 59                           out (c),e
+  F54C    D9                              exx
+  F54D    21 0000*                        ld hl,strcpp
+  F550    11 0121                         ld de,100h+movecppsize
+  F553    D5                              push de
+  F554    01 1600                         ld bc,bios-cpmb   ; bdos ***
+  F557    C5                              push bc
+  F558    ED B0                           ldir
+  F55A    D9                              exx
+  F55B    ED 51                           out (c),d
+  F55D    C1                              pop bc
+  F55E    E1                              pop hl
+  F55F    11 DA00                         ld de,cpmb
+  F562    ED B0                           ldir
+  F564    C9                              ret
+  0021                          movecppsize equ ($-movecpp)
+                                
+                                
+  F565    7E                    biosprint:  ld a,(hl)
+  F566    FE FF                             cp 0ffh
+  F568    C8                                ret z    
+  F569    E5                                push hl
+  F56A    21 0000*                          ld hl,ttyout
+  F56D    16 00*                            ld d,ttybnk
+  F56F    CD FFEE                           call gate
+  F572    E1                                pop hl
+  F573    23                                inc hl
+  F574    18 EF                             jr biosprint
+                                
+  F576    00 00 00 00           signon: db 0,0,0,0
+  F57A    1B 5D 1B 51                   db 27,"]",27,"Q",27,"V",0,27,"P",7
+  F57E    1B 56 00 1B           
+  F582    50 07                 
+  F584    0C                            db 12                 ; clear screen code
+  F585    07                            db 7                  ; beep
+  F586    1B 50 04 43                   db 27,"P",4,"CP/M version 2.2"
+  F58A    50 2F 4D 20           
+  F58E    76 65 72 73           
+  F592    69 6F 6E 20           
+  F596    32 2E 32              
+  F599    0D 0A                         db 13,10
+  F59B    1B 50 42 28                   db 27,"P",66,"(C) 1979 Digital Research Ltd"
+  F59F    43 29 20 31           
+  F5A3    39 37 39 20           
+  F5A7    44 69 67 69           
+  F5AB    74 61 6C 20           
+  F5AF    52 65 73 65           
+  F5B3    61 72 63 68           
+  F5B7    20 4C 74 64           
+  F5BB    0D 0A                         db 13,10
+  F5BD    1B 50 45 42                   db 27,"P",69,"BIOS Ver 2.0 for Scorpion/Kay/Pentagon"
+  F5C1    49 4F 53 20           
+  F5C5    56 65 72 20           
+  F5C9    32 2E 30 20           
+  F5CD    66 6F 72 20           
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-8
+
+
+  F5D1    53 63 6F 72           
+  F5D5    70 69 6F 6E           
+  F5D9    2F 4B 61 79           
+  F5DD    2F 50 65 6E           
+  F5E1    74 61 67 6F           
+  F5E5    6E                    
+  F5E6    0D 0A                         db 13,10
+  F5E8    1B 50 01 28                   db 27,"P",1,"(L) 26-12-1999 Kirill Frolov 2:5030/827.2"
+  F5EC    4C 29 20 32           
+  F5F0    36 2D 31 32           
+  F5F4    2D 31 39 39           
+  F5F8    39 20 4B 69           
+  F5FC    72 69 6C 6C           
+  F600    20 46 72 6F           
+  F604    6C 6F 76 20           
+  F608    32 3A 35 30           
+  F60C    33 30 2F 38           
+  F610    32 37 2E 32           
+  F614    1B 50 07 0D                   db 27,"P",7,13,10,13,10
+  F618    0A 0D 0A              
+  F61B    FF                            db 0ffh
+                                
+  F61C    07                    failtxt: db 7
+  F61D    1B 50 42 52                    db 27,"P",66,"RAM at addr. 0000..3FFF not found !",13,10
+  F621    41 4D 20 61           
+  F625    74 20 61 64           
+  F629    64 72 2E 20           
+  F62D    30 30 30 30           
+  F631    2E 2E 33 46           
+  F635    46 46 20 6E           
+  F639    6F 74 20 66           
+  F63D    6F 75 6E 64           
+  F641    20 21 0D 0A           
+  F645    1B 50 06 53                    db 27,"P",6,"SYSTEM HALTED !",0ffh
+  F649    59 53 54 45           
+  F64D    4D 20 48 41           
+  F651    4C 54 45 44           
+  F655    20 21 FF              
+                                
+  F658    F5                    cache_on:   push af
+  F659    DB FB                             in a,(0fbh)
+  F65B    F1                                pop af
+  F65C    C9                                ret
+  F65D    F5                    cache_off:  push af
+  F65E    DB 7B                             in a,(07bh)
+  F660    F1                                pop af
+  F661    C9                                ret
+                                
+  F662    C5                    p01ffd_on:  push bc
+  F663    F5                                push af
+  F664    01 1FFD                           ld bc,1ffdh
+  F667    3E 01                             ld a,01h
+  F669    ED 79                             out (c),a
+  F66B    F1                                pop af
+  F66C    C1                                pop bc
+  F66D    C9                                ret
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-9
+
+
+  F66E    C5                    p01ffd_off: push bc
+  F66F    F5                                push af
+  F670    01 1FFD                           ld bc,1ffdh
+  F673    AF                                xor a
+  F674    ED 79                             out (c),a
+  F676    F1                                pop af
+  F677    C1                                pop bc
+  F678    C9                                ret
+                                
+                                
+                                ;--------------------------------------------------------
+                                
+  F679    AF                    home:   xor a 
+  F67A    32 F6F4                       ld (sektrk),a 
+  F67D    C9                            ret 
+                                
+  F67E    21 0000               seldsk: ld hl,0                 ;default dph
+  F681    79                            ld a,c                  ;selected disk number
+  F682    FE 05                         cp 5                    ;disk max number+1
+  F684    D0                            ret nc                  ;error - no disk
+                                
+  F685    32 F738                       ld (sekdsk),a           ;seek disk number
+  F688    87                            add a,a 
+  F689    87                            add a,a 
+  F68A    87                            add a,a 
+  F68B    6F                            ld l,a 
+  F68C    26 00                         ld h,0
+  F68E    29                            add hl,hl               ; multiplay by 16
+  F68F    11 F0AE                       ld de,dpbase            ;base of parm block
+  F692    19                            add hl,de               ;hl=.dpb(curdsk)
+  F693    EB                            ex de,hl 
+  F694    21 000A                       ld hl,0ah  ; dpb address here
+  F697    19                            add hl,de 
+  F698    4E                            ld c,(hl)
+  F699    23                            inc hl
+  F69A    46                            ld b,(hl)  ; bc=dpb address
+  F69B    21 000D                       ld hl,0dh  ; track offset rel.adr.
+  F69E    09                            add hl,bc
+  F69F    4E                            ld c,(hl)
+  F6A0    23                            inc hl
+  F6A1    46                            ld b,(hl)
+  F6A2    ED 43 F6E5                    ld (hst_ts),bc ; system tracks
+  F6A6    23                            inc hl     ; extra info:
+  F6A7    7E                            ld a,(hl)  ; L=host size shift
+  F6A8    32 F710                       ld (hszshf),a 
+  F6AB    23                            inc hl
+  F6AC    7E                            ld a,(hl)  ; H=host size mask
+  F6AD    32 F700                       ld (hszmsk),a
+  F6B0    EB                            ex de,hl 
+  F6B1    C9                            ret 
+                                ;
+  F6B2                          settrk: ;set track given by registers BC 
+  F6B2    ED 43 F6F4                    ld (sektrk),bc          ;track to seek
+  F6B6    C9                            ret 
+                                ;
+  F6B7                          setsec:
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-10
+
+
+                                        ;set sector given by register c 
+  F6B7    79                            ld a,c 
+  F6B8    32 F6FD                       ld (seksec),a           ;sector to seek
+  F6BB    C9                            ret 
+                                ;
+  F6BC                          setdma: ;set dma address given by BC 
+  F6BC    ED 43 F779                    ld (dmaadr),bc 
+  F6C0    C9                            ret 
+                                ;
+  F6C1                          sectran: ;translate sector number BC, de=table -> hl=sector
+  F6C1    EB                            ex de,hl 
+  F6C2    09                            add hl,bc 
+  F6C3    7E                            ld a,(hl) 
+  F6C4    6F                            ld l,a 
+  F6C5    26 00                         ld h,0
+  F6C7    32 F6FD                       ld (seksec),a 
+  F6CA    C9                            ret 
+                                
+                                ;reading sector from disk
+  F6CB    ED 73 F79D            read:   ld (cpmsp),sp    ; save cpm stack
+  F6CF    31 FFEE                       ld sp,biosstack ; and set bios stack
+  F6D2    3E EB                         ld a,0ebh        ; ex de,hl  instuctions, reading flag
+  F6D4    32 F77B                       ld (rwflag),a
+  F6D7    18 1A                         jr rwoper
+                                
+                                ;write sector to disk
+  F6D9    ED 73 F79D            write:  ld (cpmsp),sp 
+  F6DD    31 FFEE                       ld sp,biosstack
+  F6E0    AF                            xor a           ; NOP if writing
+  F6E1    32 F77B                       ld (rwflag),a 
+                                ;        ld a,c          ; operation type
+  F6E4    01 0000                          ld bc,0
+  F6E5                          hst_ts     equ $-2   ; system tracks
+  F6E7    2A F6F4                          ld hl,(sektrk)
+  F6EA    37                               scf           ; a=0 ^^^
+  F6EB    ED 42                            sbc hl,bc 
+  F6ED    30 01                            jr nc,$+3  ; seek > system
+  F6EF    3C                               inc a 
+  F6F0    32 F78D                       ld (wrtype),a 
+                                
+                                
+  F6F3    01 0000               rwoper: ld bc,0         ; seek track
+  F6F4                          sektrk  equ $-2
+  F6F6    04                            inc b
+  F6F7    05                            dec b
+  F6F8    C2 F7A0                       jp nz,rwbad     ; track > 255 !
+                                
+  F6FB    C5                            push bc 
+  F6FC    3E 00                         ld a,0          ; seek logical sector
+  F6FD                          seksec  equ $-1
+  F6FE    4F                            ld c,a 
+  F6FF    E6 00                         and 0
+  F700                          hszmsk  equ $-1         ; host size mask
+  F701    1E 00                         ld e,0
+  F703    CB 3F                         srl a 
+  F705    CB 1B                         rr e 
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-11
+
+
+  F707    57                            ld d,a
+  F708    21 F8D9                       ld hl,hstbuf
+  F70B    19                            add hl,de       ; hl=address in host buffer
+  F70C    EB                            ex de,hl 
+  F70D    79                            ld a,c          ; seek logical sector
+  F70E    87                            add a,a 
+  F70F    06 00                         ld b,0
+  F710                          hszshf  equ $-1         ; host size shift
+  F711    1F                            rra 
+  F712    B7                            or a 
+  F713    10 FC                         djnz $-2        ; compute phisical seek sector
+  F715    3C                            inc a           ; 1..n
+  F716    4F                            ld c,a
+  F717    3A F700                       ld a,(hszmsk)
+  F71A    FE 07                         cp 07          ; sector size = 1kb ?
+  F71C    20 0D                         jr nz,rwoper1   ; no
+  F71E    3A F6F4                       ld a,(sektrk)
+  F721    B7                            or a            ; seek track 0 ?
+  F722    20 07                         jr nz,rwoper1   ; no
+                                
+                                ;its a 1kb sector size disk from profi
+                                ;if track=0 change sector 5 to sector 9
+  F724    79                            ld a,c
+  F725    FE 05                         cp 5
+  F727    20 02                         jr nz,rwoper1
+  F729    0E 09                         ld c,9
+                                
+  F72B    79                    rwoper1: ld a,c          ; phisical seek sector 1..n
+  F72C    C1                            pop bc          ; seek track in C 
+  F72D    47                            ld b,a          ; seek sector in B 
+  F72E    3A F80A                       ld a,(hstsec)   ; host sector
+  F731    B8                            cp b            ; seek == host sector ?
+  F732    20 12                         jr nz,rwdiff    ; data not in host buffer
+  F734    3A F841                       ld a,(hstdsk)   ; host disk
+  F737    FE 00                         cp 0            ; seek disk
+  F738                          sekdsk  equ $-1
+  F739    20 0B                         jr nz,rwdiff
+  F73B    3A F7CF                       ld a,(hsttrk)   ; host track
+  F73E    B9                            cp c            ; seek track
+  F73F    20 05                         jr nz,rwdiff    ; data not in host buffer
+  F741    3E 00                         ld a,0
+  F742                          hstempt equ $-1         ; host buffer empty ?
+  F743    B7                            or a
+  F744    20 2D                         jr nz,rwmove    ; not empty, move from host buffer to dma adress
+                                
+                                ; data not in host buffer,
+                                ; host buffer saved ?
+  F746    D5                    rwdiff: push de         ; save address in host buffer
+  F747    C5                            push bc         ; save seek sector in B 
+  F748    3E 00                         ld a,0
+  F749                          flush   equ $-1
+  F74A    B7                            or a
+  F74B    28 0A                         jr z,rwsaved    ; data saved
+                                
+                                ; save host buffer to disk
+  F74D    CD F7AE                       call writehst
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-12
+
+
+  F750    3E 00                         ld a,0          ; CY - error flag
+  F752    32 F749                       ld (flush),a    ; reset flush flag
+  F755    38 49                         jr c,rwbad      ; disk error
+                                
+                                ; Lset new host disk, track and sector
+                                ; and read phisical sector in host buffer
+  F757    F1                    rwsaved: pop af          ; phisical seek sector
+  F758    32 F80A                       ld (hstsec),a   ; set sector
+  F75B    3A F6F4                       ld a,(sektrk)   ; set track
+  F75E    32 F7CF                       ld (hsttrk),a 
+  F761    3A F738                       ld a,(sekdsk)   ; set disk
+  F764    32 F841                       ld (hstdsk),a 
+  F767    CD F7A7                       call readhst    ; readng
+  F76A    D1                            pop de          ; restore address in host buffer
+  F76B    30 06                         jr nc,rwmove    ; no errors
+  F76D    AF                            xor a
+  F76E    32 F742                       ld (hstempt),a  ; set flag host buffer empty
+  F771    18 2D                         jr rwbad        ; disk error
+                                
+                                ; data in host buffer,
+                                ; move logical sector from/to host buffer
+  F773    3E 01                 rwmove: ld a,1
+  F775    32 F742                       ld (hstempt),a  ; host buffer not empty
+  F778    21 0000                       ld hl,0
+  F779                          dmaadr  equ $-2         ; dma address
+  F77B    EB                    rwflag: ex de,hl        ; r/w flag, nop for writing
+  F77C    01 0080                       ld bc,128       ; cp/m sector size
+  F77F    ED B0                         ldir
+                                
+                                ; it's all right if reading data
+  F781    3A F77B                       ld a,(rwflag)
+  F784    B7                            or a
+  F785    20 14                         jr nz,rwend     ; read operation complete
+                                
+                                ; set flush flag if writing
+  F787    3E 01                         ld a,1
+  F789    32 F749                       ld (flush),a
+                                
+                                ; directory writing ?
+  F78C    3E 00                         ld a,0
+  F78D                          wrtype  equ $-1
+  F78E    3D                            dec a
+  F78F    20 0A                         jr nz,rwend     ; type <> 1  -  not dir. writing
+                                
+                                ; save host buffer to disk
+  F791    CD F7AE                       call writehst
+  F794    3E 00                         ld a,0          ; CY - error flag
+  F796    32 F749                       ld (flush),a    ; data saved
+  F799    38 05                         jr c,rwbad      ; disk error
+                                
+                                ; succesfull end of r/w operations
+  F79B    AF                    rwend:  xor a           ; A=0 - no errors
+  F79C    31 0000                       ld sp,0         ; restore CP/M stack pointer
+  F79D                          cpmsp   equ $-2
+  F79F    C9                            ret             ; return to CP/M
+                                
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-13
+
+
+                                ; error
+  F7A0    3E FF                 rwbad:  ld a,0ffh        ; a=#ff - error
+  F7A2    ED 7B F79D                    ld sp,(cpmsp)   ; restore CP/M stack
+  F7A6    C9                            ret 
+                                
+                                
+                                
+                                
+                                
+                                
+                                ;  DISK DRIVER FUNCTION READHST AND WRITEHST      
+                                
+                                
+                                
+                                
+                                ; reading sector from
+                                ; hstdrv, hsttrk, hstsec
+  F7A7    3E 80                 readhst: ld a,80h       ; m=0 C=0 E=0
+  F7A9    32 F811                        ld (rwcomm),a  ; read command for WG93
+  F7AC    18 05                          jr initfdd
+                                
+                                ; write sector to
+                                ; hstdrv, hsttrk, hstsec
+  F7AE    3E A0                 writehst: ld a,0a0h      ; m=0 C=0 E=0
+  F7B0    32 F811                         ld (rwcomm),a  ; write command for WG93
+                                
+                                ; set ROM basic-48 at page 00h-04000h
+  F7B3    F3                    initfdd: di            ; disabe interrupts
+  F7B4    ED 73 FEFD                     ld (intstack-2),sp
+  F7B8    31 FEFD                        ld sp,intstack-2
+  F7BB    CD F65D                        call cache_off
+  F7BC                          trdon    equ $-2
+                                
+                                ; set retry counter
+  F7BE    3E 0A                         ld a,10       ; attepmpts
+  F7C0    32 F8D3                       ld (errcnt),a 
+                                
+  F7C3                          retry:
+                                
+                                ; set 0FFh register of BETA DISK
+  F7C3    3A F841                       ld a,(hstdsk) ; host disk
+  F7C6    FE 04                 		cp 4
+  F7C8    CA FCDF               		jp z,hdd_smuc ;если обращение к HDD
+  F7CB    E6 03                         and 3         ; only 4 phisical
+  F7CD    57                            ld d,a        ; drives present
+  F7CE    3E 00                         ld a,0        ; host track
+  F7CF                          hsttrk  equ $-1
+  F7D0    0F                            rrca 
+  F7D1    47                            ld b,a        ; save track
+  F7D2    0F                            rrca 
+  F7D3    0F                            rrca 
+  F7D4    0F                            rrca 
+  F7D5    2F                            cpl 
+  F7D6    E6 10                         and 16        ; side
+  F7D8    F6 2C                         or 44         ; 02ch mask
+  F7DA    B2                            or d          ; set drive
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-14
+
+
+  F7DB    0E FF                         ld c,255
+  F7DD    CD F87B                       call wrdos
+                                
+                                ; drive initialized ?
+  F7E0    6A                            ld l,d        ; drive
+  F7E1    26 00                         ld h,0
+  F7E3    11 F8CF                       ld de,drvparam
+  F7E6    19                            add hl,de 
+  F7E7    7E                            ld a,(hl)     ; current track
+  F7E8    EB                            ex de,hl      ; store drvparam address
+  F7E9    FE FF                         cp 0ffh       ; drive initialized ?
+  F7EB    20 06                         jr nz,defdrv  ; yes
+                                
+                                ;reset drive
+  F7ED    3E 08                         ld a,08       ; h=1 V=0
+  F7EF    CD F853                       call whwrk    ; wait while working
+  F7F2    AF                            xor a
+                                
+                                ; set track register (in B)
+  F7F3    0E 3F                 defdrv: ld c,63       ; TRACK register
+  F7F5    CD F87B                       call wrdos
+                                
+                                ; set destination track in DATA register
+  F7F8    78                            ld a,b        ; track and side in 7 bit 
+  F7F9    E6 7F                         and 127       ; real phisical track
+  F7FB    EB                            ex de,hl      ; drvparam address
+  F7FC    77                            ld (hl),a 
+  F7FD    0E 7F                         ld c,127      ; DATA register
+  F7FF    CD F87B                       call wrdos
+                                
+                                ; send SEEK command to controller
+  F802    3E 18                         ld a,24     ; h=1 V=0 f1,f2=0
+  F804    CD F853                       call whwrk  ; wait while working
+                                
+                                ; set sector number
+  F807    0E 5F                         ld c,95     ; 05fh SECTOR register of WG93
+  F809    3E 00                         ld a,0      ; host sector
+  F80A                          hstsec  equ $-1
+  F80B    CD F87B                       call wrdos
+                                
+                                ; FDD now alwise ready.
+                                ; write rw command to WG93
+                                ;        ld a,(hsttrk)
+                                ;        and 1
+                                ;        rlca 
+                                ;        rlca 
+                                ;        rlca          ; side
+                                ;        ld b,a        ; command mask
+  F80E    0E 1F                         ld c,31       ; 01fh COMMAND register
+  F810    3E 00                         ld a,0        ; command for WG93
+  F811                          rwcomm  equ $-1
+                                ;        or b 
+  F812    47                            ld b,a 
+                                
+                                ; define operation type and set routine address
+  F813    E6 20                         and 32        ; command type ?  R/W
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-15
+
+
+  F815    11 3FD5                       ld de,16341   ; 03fd5h reading routine address
+  F818    3E 1C                         ld a,28       ; 01ch read error mask
+  F81A    28 05                         jr z,soper    ; read sector
+  F81C    3E 7C                         ld a,124      ; 07ch write error mask
+  F81E    11 3FBA                       ld de,16314   ; 03fbah writing routine address
+                                
+                                ; reading/writing sector from WG93
+  F821    32 F839               soper:  ld (errmsk),a 
+  F824    78                            ld a,b        ; command for WG93
+  F825    CD F87B                       call wrdos    ; send it
+  F828    0E 7F                         ld c,127      ; 07fh DATA register
+  F82A    CD F874                       call soper1   ; read or write
+  F82D    0E 1F                         ld c,31       ; STATUS register
+  F82F    F5                            push af       ; flag Z time out 
+                                
+                                ; error ?
+  F830    CD F880                       call rd1f     ; read STATUS
+  F833    47                            ld b,a
+  F834    F1                            pop af 
+  F835    28 09                         jr z,rwerr1   ; z,a=0 timeout
+  F837    78                            ld a,b        ; status
+  F838    E6 00                         and 0         ; error mask
+  F839                          errmsk  equ $-1
+  F83A    28 2E                         jr z,noerr    ; no errors
+                                
+                                ; write protect ?
+  F83C    CB 77                         bit 6,a
+  F83E    20 25                         jr nz,dskerr
+                                
+                                ; set track as undefined
+  F840    2E 00                 rwerr1: ld l,0
+  F841                          hstdsk  equ $-1
+  F842    26 00                         ld h,0
+  F844    11 F8CF                       ld de,drvparam
+  F847    19                            add hl,de 
+  F848    36 FF                         ld (hl),0ffh
+                                
+                                ; decrease error counter
+  F84A    21 F8D3               rwerr2: ld hl,errcnt  ; error counter
+  F84D    35                            dec (hl) 
+  F84E    28 15                         jr z,dskerr   ; no more attempts
+                                
+                                ; read again
+  F850    C3 F7C3                       jp retry      ; restart driver
+                                
+                                ;--------------------------------------
+                                ; write command in A to WG93 and 
+                                ; wait while command working
+  F853    C5                    whwrk:  push bc
+  F854    D5                            push de
+  F855    0E 1F                         ld c,31      ; command register
+  F857    CD F87B                       call wrdos   ; write command
+  F85A    11 3FCA                       ld de,3fcah
+  F85D    0E 3F                         ld c,3fh
+  F85F    CD F874                       call soper1
+  F862    D1                            pop de
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-16
+
+
+  F863    C1                            pop bc
+  F864    C9                            ret 
+                                
+                                ; fatal error
+  F865    3E FF                 dskerr:  ld a,0ffh
+  F867    37                             scf          ; its error
+  F868    18 01                          jr endwork
+                                
+                                ; no errors
+  F86A    AF                    noerr:  xor a   ; z,nc,a=0
+                                
+                                ; restore ram at page 00h-04000h
+  F86B    CD F658               endwork: call cache_on
+  F86C                          trdoff   equ $-2        
+  F86E    ED 7B FEFD                     ld sp,(intstack-2)
+  F872    FB                             ei               
+  F873    C9                             ret 
+                                
+                                
+  F874    D5                    soper1: push de       ; address of r/w routine
+  F875    21 F8D9                       ld hl,hstbuf  ; place for sector
+  F878    C3 3D2F                       jp 15663      ; 032fh
+                                
+  F87B    21 2A53               wrdos:   ld hl,10835  ; 02a53h addr: out (c),a 
+  F87E    18 4B                          jr godos
+                                
+                                ; 2740:   in a,(1fh)
+                                ;         ld (5ccdh),a
+                                ;         ld e,d
+                                ;         push de
+                                ;         ld a,e
+                                ;         out (7fh),a
+                                ;         ld a,18h
+                                ;         call 3d9ah
+                                ;
+                                ; 3d9a:   out (1fh),a
+                                ;         push hl
+                                ;         rst 20h
+                                ;         dw 1f54h
+                                ;
+                                ; 0020:   jp 2f72h
+                                ;
+                                ; 2f72:   ld (5d02h),hl
+                                ;         ld (5d04h),de        
+                                ;         pop hl
+                                ;         ld e,(hl)
+                                ;         inc hl
+                                ;         ld d,(hl)
+                                ;         inc hl
+                                ;         push hl
+                                ;         ld hl,3d2fh
+                                ;         push hl
+                                ;         push de
+                                ;         ld hl,5cc2h
+                                ;         push hl
+                                ;         ld hl,(5d02h)
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-17
+
+
+                                ;         ld de,(5d04h)
+                                ;         ret
+                                
+  F880    3A 5CC2               rd1f:    ld a,(5cc2h)
+  F883    F5                             push af
+  F884    2A 5CC3                        ld hl,(5cc3h)
+  F887    E5                             push hl
+  F888    2A 5D04                        ld hl,(5d04h)
+  F88B    E5                             push hl
+  F88C    3A 5CCD                        ld a,(5ccdh)
+  F88F    F5                             push af        ; сохp. что будет испоpчено
+                                
+  F890    21 5CC2                        ld hl,5cc2h
+  F893    36 C3                          ld (hl),0c3h
+  F895    21 F8B0                        ld hl,rd1fret
+  F898    22 5CC3                        ld (5cc3h),hl  ; пеpехват RST 20h в TR-DOS
+                                
+  F89B    3A F841                        ld a,(hstdsk)
+  F89E    6F                             ld l,a
+  F89F    26 00                          ld h,0
+  F8A1    11 F8CF                        ld de,drvparam
+  F8A4    19                             add hl,de
+  F8A5    56                             ld d,(hl)    ; текущий тpек -- куда позициониpовать
+                                           
+  F8A6    21 2740                        ld hl,2740h  ; куда в тp-дос идти
+  F8A9    E5                             push hl
+  F8AA    2A 5D02                        ld hl,(5d02h)  ; тоже чтобы не испоpтилось
+  F8AD    C3 3D2F                        jp 3d2fh       ; gate address
+                                
+  F8B0                          rd1fret:
+                                ;         pop hl   ; 1f54h
+                                ;         pop hl   ; 3d2fh
+                                ;         pop hl   ; rst 20h ...
+                                ;         pop hl   ; push hl
+                                ;         pop hl   ; call 3d9ah ...
+                                ;         pop hl   ; de                                
+  F8B0    21 000C                        ld hl,12
+  F8B3    39                             add hl,sp
+  F8B4    F9                             ld sp,hl        ; restore stack
+                                
+  F8B5    3A 5CCD                        ld a,(5ccdh)  ; e = reg(1fh)
+  F8B8    5F                             ld e,a
+  F8B9    F1                             pop af         ; восстановление испоpченной памяти
+  F8BA    32 5CCD                        ld (5ccdh),a
+  F8BD    E1                             pop hl
+  F8BE    22 5D04                        ld (5d04h),hl
+  F8C1    E1                             pop hl
+  F8C2    22 5CC3                        ld (5cc3h),hl
+  F8C5    F1                             pop af
+  F8C6    32 5CC2                        ld (5cc2h),a
+  F8C9    7B                             ld a,e
+  F8CA    C9                             ret
+                                
+  F8CB    E5                    godos:   push hl 
+  F8CC    C3 3D2F                        jp 15663     ; 03d2fh
+                                
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-18
+
+
+                                ; tracks for drives A,B,C,D 
+  F8CF    FF FF FF FF           drvparam: db 0ffh,0ffh,0ffh,0ffh
+                                
+  F8D3    00                    errcnt:  db 0
+                                
+  F8D4    41 53 44 46                   db "ASDFG"
+  F8D8    47                    
+  F8D9                          hstbuf: ds 1024
+  FCD9    71 77 65 72                   db "qwerty"
+  FCDD    74 79                 
+                                
+                                ;
+                                ; END OF DISK DRIVER
+                                ;
+                                ;-----------------------------------------------------------
+                                
+                                
+                                ;--------------------
+                                ;HDD SMUC DISK DRIVER
+                                ; reading/write sector from
+                                ; hstdrv, hsttrk, hstsec
+  FCDF                          hdd_smuc:
+                                	;подключение раздела
+  FCDF    3A FD60               	ld a,(hdd_smuc_if)
+  FCE2    B7                    	or a
+  FCE3    20 13                 	jr nz,hdd_smuc_iok ;если инициализация была, пропустим
+                                	;ld a,083h ;%10000011 раздел CP/M уже должен быть смонтирован на диск D
+  FCE5    3E 0B                 	ld a,00bh ;%00001011 раздел монтируется по имени в DE
+  FCE7    11 FD61               	ld de,hdd_smuc_part
+  FCEA    01 0023               	ld bc,00023h ;функция подключить раздел С=35
+  FCED    CD FD48               	call rst8s
+  FCF0    DA F865               	jp c,dskerr ;выход с ошибкой
+                                	;проверка что раздел CP/M 
+                                	; xor a
+                                	; ld hl,hstbuf ;адрес куда читать
+                                	; ld bc,00026h ;функция вернуть таблицу (каталог) подраздела С=38
+                                	; rst 8
+                                	; db 081h
+                                	; jp c,dskerr
+                                	; ld a,(hstbuf)
+                                	; and 31
+                                	; cp 2 ;MicroDOS?
+                                	; jp nz,dskerr
+                                	
+                                	; ld de,00001h ;адрес сектора
+                                	; ld hl,hstbuf1 ;адрес откуда писать
+                                	; ld bc,00125h ;сколько секторов писать, функция записать сектор С=37
+                                	; rst 8
+                                	; db 081h
+                                	; jp noerr
+                                ; hstbuf1: "CPM-ZS00"
+  FCF3    3E 01                 	ld a,1
+  FCF5    32 FD60               	ld (hdd_smuc_if),a ;раздел подключили только в первый раз
+                                
+                                
+  FCF8                          hdd_smuc_iok:	
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-19
+
+
+  FCF8    3A F811               	ld a,(rwcomm)
+  FCFB    E6 20                 	and 32 
+  FCFD    28 02                 	jr z,hdd_smuc_read ;если команда чтение
+  FCFF    18 23                 	jr hdd_smuc_write ;если запись
+                                	;jr dskerr 
+                                	;jr noerr ;выход без ошибки
+                                	;ret
+                                
+  FD01                          hdd_smuc_read: ;чтение сектора
+  FD01    3A F7CF               	ld a,(hsttrk) ;дорожка
+  FD04    6F                    	ld l,a
+  FD05    26 00                 	ld h,0
+  FD07    29                    	add hl,hl ;умножить на секторы на каждой (надо бы использовать переменную dpblk_smuc)
+  FD08    29                    	add hl,hl
+  FD09    29                    	add hl,hl
+  FD0A    29                    	add hl,hl
+  FD0B    29                    	add hl,hl ;*32
+  FD0C    29                    	add hl,hl ;*64
+  FD0D    3A F80A               	ld a,(hstsec)
+  FD10    5F                    	ld e,a
+  FD11    16 00                 	ld d,0
+  FD13    19                    	add hl,de ;прибавить сектор на дорожке
+  FD14    EB                    	ex de,hl
+                                	;ld de,00001h ;адрес сектора
+  FD15    21 F8D9               	ld hl,hstbuf ;адрес куда читать
+  FD18    01 0124               	ld bc,00124h ;сколько секторов читать, функция читать сектор С=36
+  FD1B    CD FD48               	call rst8s
+  FD1E    DA F865               	jp c,dskerr
+  FD21    C3 F86A               	jp noerr
+                                
+                                	
+  FD24                          hdd_smuc_write: ;запись сектора
+  FD24    3A F7CF               	ld a,(hsttrk) ;дорожка
+  FD27    6F                    	ld l,a
+  FD28    26 00                 	ld h,0
+  FD2A    29                    	add hl,hl ;умножить на секторы на каждой
+  FD2B    29                    	add hl,hl
+  FD2C    29                    	add hl,hl
+  FD2D    29                    	add hl,hl
+  FD2E    29                    	add hl,hl ;*32
+  FD2F    29                    	add hl,hl ;*64
+  FD30    3A F80A               	ld a,(hstsec)
+  FD33    5F                    	ld e,a
+  FD34    16 00                 	ld d,0
+  FD36    19                    	add hl,de ;прибавить сектор на дорожке
+  FD37    EB                    	ex de,hl
+                                	;теперь записать
+                                	;ld de,00001h ;адрес сектора
+  FD38    21 F8D9               	ld hl,hstbuf ;адрес откуда писать
+  FD3B    01 0125               	ld bc,00125h ;сколько секторов писать, функция записать сектор С=37
+  FD3E    CD FD48               	call rst8s
+  FD41    81                    	db 081h
+  FD42    DA F865               	jp c,dskerr
+  FD45    C3 F86A               	jp noerr
+                                
+                                ;вызов rst 8 с контролем экрана
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-20
+
+
+  FD48                          rst8s:
+  FD48    F5                    	push af ;задать экран
+  FD49    3A 5B5C               	ld a,(05b5ch) 
+  FD4C    32 FD6C               	ld (hdd_smuc_5b5c),a ;сохранить что было
+  FD4F    3E 19                 	ld a,019h ;переменная
+  FD51    32 5B5C               	ld (05b5ch),a
+  FD54    F1                    	pop af
+  FD55    CF                    	rst 8
+  FD56    81                    	db 081h
+  FD57    F5                    	push af
+  FD58    3A FD6C               	ld a,(hdd_smuc_5b5c) ;вернуть ячейку
+  FD5B    32 5B5C               	ld (05b5ch),a
+  FD5E    F1                    	pop af
+  FD5F    C9                    	ret
+                                	
+                                ;процедура вызова rst 8 если включено ОЗУ вместо ПЗУ	
+                                ; bRST8:	ex	(sp),hl
+                                	; push	af
+                                	; ld	a,(hl)
+                                	; inc	hl
+                                	; ld	(xxx),a
+                                	; pop	af
+                                	; ex	(sp),hl
+                                	; push	bc
+                                	; push	af
+                                	; ld	bc,01FFDh
+                                	; xor	a
+                                	; out	(c),a
+                                ; ; 	ld	b,07Fh
+                                ; ;	ld	a,010h
+                                ; ;	out	(c),a
+                                	; pop	af
+                                	; pop	bc
+                                	; rst	008h
+                                ; xxx:	db	0
+                                ; ;	push	bc
+                                ; ;	push	af
+                                ; ;	ld	bc,01FFDh		
+                                ; ;	ld	a,001h
+                                ; ;	out	(c),a
+                                ; ;	pop	af
+                                ; ;	pop	bc
+                                	; ret
+                                
+                                ;hdd_smuc_cs: db 0 ;номер сектора 128 внутри сектора 512	
+  FD60    00                    hdd_smuc_if: db 0 ;флаг инициализации
+                                ;hdd_smuc_sec: dw 0 ;текущий сектор для записи
+  FD61    44 3A 5C 43           hdd_smuc_part: db "D:\CPMZS0  " ;имя раздела 
+  FD65    50 4D 5A 53           
+  FD69    30 20 20              
+  FD6C    00                    hdd_smuc_5b5c: db 0 ;переменная
+                                
+                                ;END HDD SMUC DISK DRIVER
+                                ;-----------------------
+                                
+                                
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page 1-21
+
+
+                                ;interrupt stack
+                                
+  FD6D                                  ds (0feffh-$) ; 20 bytes for all registers
+                                
+  FEFF                          intstack equ $
+                                
+  FEFF    F074                  intvec:  dw intadr  ; im_2 vector  #feff
+                                
+                                ;stack of bios HERE
+                                
+  FF01                                  ds (0fff8h-10-$)
+                                
+  FFEE                          biosstack   equ $
+                                
+                                ;to scren bank
+  FFEE    F3                    gate:   di 
+  FFEF    ED 73 FFF9                    ld (stack),sp 
+  FFF3    01 7FFD                       ld bc,7ffdh
+  FFF6    ED 51                         out (c),d 
+                                ;from screen bank 0fff8h !
+  FFF8    31 0000                       ld sp,0
+  FFF9                          stack   equ $-2
+  FFFB    C9                            ret 
+                                
+                                        .dephase
+                                
+                                
+%END statement required as end of program
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page S
+
+
+Macros:
+
+Symbols:
+0092    ..MODE..                         F2CC    ALL_ATM
+F24C    ALL_MOA0                         F28C    ALL_MOA1
+F30C    ALL_PROFI                        F34C    ALL_SMUC0
+0008    BS                               E206    BDOS
+F000    BIOS                             F48C    BOOT
+0019I   BIOBNK                           F033    BOOTDISK
+F4DB    BOOTFAIL                         F565    BIOSPRINT
+FFEE    BIOSSTACK                        000D    CR
+DA00    CPMB                             0019    CBANK
+F040    CONIN                            F034    CONST
+F79D    CPMSP                            0003    CNTRLC
+0005    CNTRLE                           0010    CNTRLP
+0012    CNTRLR                           0013    CNTRLS
+0015    CNTRLU                           0018    CNTRLX
+001A    CNTRLZ                           F03E    CONIN1
+F050    CONOUT                           001E    CPPBNK
+F40C    CHK_ATM                          F658    CACHE_ON
+F3CC    CHK_MOA0                         F3EC    CHK_MOA1
+F65D    CACHE_OFF                        F42C    CHK_PROFI
+F44C    CHK_SMUC0                        007F    DEL
+F1CA    DIRBF                            F7F3    DEFDRV
+F779    DMAADR                           F0AE    DPBASE
+F865    DSKERR                           F8CF    DRVPARAM
+F197    DPBLK_ATM                        F186    DPBLK_MOA
+F1B9    DPBLK_SMUC                       F1A8    DPBLK_PROFI
+0005    ENTRY                            F8D3    ERRCNT
+F839    ERRMSK                           F86B    ENDWORK
+000C    FF                               F4E5    FBOOT
+F749    FLUSH                            F61C    FAILTXT
+FFEE    GATE                             F8CB    GODOS
+0047*   GETKEY                           F679    HOME
+F8D9    HSTBUF                           F841    HSTDSK
+F80A    HSTSEC                           F7CF    HSTTRK
+F6E5    HST_TS                           F700    HSZMSK
+F710    HSZSHF                           F742    HSTEMPT
+FCDF    HDD_SMUC                         FD60    HDD_SMUC_IF
+FCF8    HDD_SMUC_IOK                     FD6C    HDD_SMUC_5B5C
+FD61    HDD_SMUC_PART                    FD01    HDD_SMUC_READ
+FD24    HDD_SMUC_WRITE                   F0A9    INTSP
+F074    INTADR                           008B*   INTKEY
+FEFF    INTVEC                           0003    IOBYTE
+F7B3    INITFDD                          FEFF    INTSTACK
+0000    JPBOOT                           0000*   KEYBNK
+000A    LF                               005D*   LPR
+F05B    LIST                             006B*   LPRST
+0000*   LPRBNK                           F544    MOVECPP
+0021    MOVECPPSIZE                      F86A    NOERR
+F4C0    NOCACHE                          F066    PUNCH
+F06A    PRSTAT                           F662    P01FFD_ON
+F66E    P01FFD_OFF                       F880    RD1F
+F6CB    READ                             F7C3    RETRY
+FD48    RST8S                            F7A0    RWBAD
+F79B    RWEND                            F067    READER
+Macro Assembler-80 v2.22D   (c) 1995,1996,1997 MOA  Page S-1
+
+
+F811    RWCOMM                           F746    RWDIFF
+F840    RWERR1                           F84A    RWERR2
+F77B    RWFLAG                           F773    RWMOVE
+F6F3    RWOPER                           F8B0    RD1FRET
+F7A7    READHST                          F72B    RWOPER1
+F757    RWSAVED                          F821    SOPER
+FFF9    STACK                            0035*   STKEY
+F738    SEKDSK                           F6FD    SEKSEC
+F6F4    SEKTRK                           F67E    SELDSK
+F6BC    SETDMA                           F6B7    SETSEC
+F6B2    SETTRK                           F576    SIGNON
+F874    SOPER1                           054E*   STRCPP
+F6C1    SECTRAN                          0009    TAB
+005C    TFCB                             0100    TBASE
+0080    TBUFF                            F7BC    TRDON
+0004    TDRIVE                           F86C    TRDOFF
+0000*   TTYBNK                           0093*   TTYINT
+056B*   TTYOUT                           0498*   TTYINIT
+F11E    TRANS_ATM                        F0FE    TRANS_MOA
+F146    TRANS_SMUC                       F11E    TRANS_PROFI
+F4EE    WBOOT                            F853    WHWRK
+F87B    WRDOS                            F6D9    WRITE
+F78D    WRTYPE                           F7AE    WRITEHST
+
+%DOS 16 bit detect: 5.00 loaded into low memory
+%Symbol table use 5 Kb (AVL-balanced B-Tree, intravel)
+%Start: 31 May 2023 17:20, Elapsed time: 00:00:00
+%Passes: 2
+
+No Fatal error(s), 2 Warning(s)
+
